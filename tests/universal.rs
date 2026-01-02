@@ -1,4 +1,7 @@
-use fracturedjson::{CommentPolicy, EolStyle, Formatter, FracturedJsonOptions, NumberListAlignment, TableCommaPlacement};
+use fracturedjson::{
+    CommentPolicy, EolStyle, Formatter, FracturedJsonOptions, NumberListAlignment,
+    TableCommaPlacement,
+};
 use std::fs;
 use std::path::Path;
 
@@ -56,7 +59,10 @@ fn universal_max_length_respected() {
         let mut formatter = Formatter::new();
         formatter.options = params.opts.clone();
         let output_text = formatter.reformat(&params.text, 0).unwrap();
-        let output_lines: Vec<&str> = output_text.trim_end().split(eol_string(&params.opts)).collect();
+        let output_lines: Vec<&str> = output_text
+            .trim_end()
+            .split(eol_string(&params.opts))
+            .collect();
 
         for line in output_lines {
             if line.chars().count() <= params.opts.max_total_line_length {
@@ -74,13 +80,19 @@ fn universal_max_inline_complexity_respected() {
         let mut formatter = Formatter::new();
         formatter.options = params.opts.clone();
         let output_text = formatter.reformat(&params.text, 0).unwrap();
-        let output_lines: Vec<&str> = output_text.trim_end().split(eol_string(&params.opts)).collect();
+        let output_lines: Vec<&str> = output_text
+            .trim_end()
+            .split(eol_string(&params.opts))
+            .collect();
 
         let biggest_complexity = std::cmp::max(
             0,
             std::cmp::max(
                 params.opts.max_inline_complexity,
-                std::cmp::max(params.opts.max_compact_array_complexity, params.opts.max_table_row_complexity),
+                std::cmp::max(
+                    params.opts.max_compact_array_complexity,
+                    params.opts.max_table_row_complexity,
+                ),
             ),
         );
 
@@ -156,7 +168,10 @@ fn universal_no_trailing_whitespace() {
         let mut formatter = Formatter::new();
         formatter.options = params.opts.clone();
         let output_text = formatter.reformat(&params.text, 0).unwrap();
-        let output_lines: Vec<&str> = output_text.trim_end().split(eol_string(&params.opts)).collect();
+        let output_lines: Vec<&str> = output_text
+            .trim_end()
+            .split(eol_string(&params.opts))
+            .collect();
 
         for line in output_lines {
             let trimmed = line.trim_end();

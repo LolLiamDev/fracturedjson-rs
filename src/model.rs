@@ -14,7 +14,6 @@ pub enum JsonItemType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
-    Invalid,
     BeginArray,
     EndArray,
     BeginObject,
@@ -88,7 +87,11 @@ impl Default for JsonItem {
     fn default() -> Self {
         Self {
             item_type: JsonItemType::Null,
-            input_position: InputPosition { index: 0, row: 0, column: 0 },
+            input_position: InputPosition {
+                index: 0,
+                row: 0,
+                column: 0,
+            },
             complexity: 0,
             name: String::new(),
             value: String::new(),

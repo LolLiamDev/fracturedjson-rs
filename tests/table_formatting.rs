@@ -19,7 +19,11 @@ fn nested_elements_line_up() {
     formatter.options.number_list_alignment = NumberListAlignment::Normalize;
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert!(do_instances_line_up(&output_lines, "x"));
     assert!(do_instances_line_up(&output_lines, "y"));
@@ -45,7 +49,11 @@ fn nested_elements_compact_when_needed_1() {
     formatter.options.max_total_line_length = 77;
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert!(do_instances_line_up(&output_lines, "position"));
     assert!(do_instances_line_up(&output_lines, "color"));
@@ -72,7 +80,10 @@ fn nested_elements_compact_when_needed_2() {
     let output_lines: Vec<&str> = output.trim_end().split('\n').collect();
 
     assert_eq!(output_lines.len(), 5);
-    assert_ne!(output_lines[1].find("position"), output_lines[2].find("position"));
+    assert_ne!(
+        output_lines[1].find("position"),
+        output_lines[2].find("position")
+    );
 }
 
 #[test]
@@ -92,7 +103,11 @@ fn tables_with_comments_line_up() {
     formatter.options.comment_policy = CommentPolicy::Preserve;
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 6);
     assert!(do_instances_line_up(&output_lines, "\""));
@@ -112,7 +127,11 @@ fn tables_with_blank_lines_line_up() {
     formatter.options.preserve_blank_lines = true;
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 6);
     assert!(do_instances_line_up(&output_lines, ":"));
@@ -186,7 +205,11 @@ fn commas_after_padding_works() {
     formatter.options.table_comma_placement = TableCommaPlacement::AfterPadding;
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 5);
     assert!(output_lines[1].contains("\"steady\" "));
@@ -216,7 +239,11 @@ fn commas_before_padding_except_numbers_works() {
     formatter.options.table_comma_placement = TableCommaPlacement::BeforePaddingExceptNumbers;
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 5);
     assert!(output_lines[1].contains("\"steady\","));
@@ -276,7 +303,11 @@ fn commas_after_padding_works_with_comments() {
     formatter.options.table_comma_placement = TableCommaPlacement::AfterPadding;
 
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert!(do_instances_line_up(&output_lines, ","));
 
@@ -297,7 +328,11 @@ fn handles_nulls_with_array_table_columns() {
     let mut formatter = Formatter::new();
     formatter.options.comment_policy = CommentPolicy::Preserve;
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert!(do_instances_line_up(&output_lines, "}"));
     assert!(do_instances_line_up(&output_lines, "*/"));
@@ -318,7 +353,11 @@ fn colons_hug_prop_names() {
     formatter.options.colon_before_prop_name_padding = true;
 
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 5);
     assert!(do_instances_line_up(&output_lines, "["));
@@ -344,7 +383,11 @@ fn single_columns_with_eol_comments_work() {
     let mut formatter = Formatter::new();
     formatter.options.comment_policy = CommentPolicy::Preserve;
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 8);
     assert!(do_instances_line_up(&output_lines, "//"));
@@ -369,7 +412,11 @@ fn single_columns_with_numbers_work() {
     formatter.options.max_total_line_length = 40;
 
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 7);
     assert!(do_instances_line_up(&output_lines, "."));

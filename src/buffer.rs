@@ -80,28 +80,73 @@ impl PaddedFormattingTokens {
     pub fn new(opts: &FracturedJsonOptions, str_len_func: &dyn Fn(&str) -> usize) -> Self {
         let mut arr_start = vec![String::new(); 3];
         arr_start[BracketPaddingType::Empty as usize] = "[".to_string();
-        arr_start[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding { "[ " } else { "[" }.to_string();
-        arr_start[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding { "[ " } else { "[" }.to_string();
+        arr_start[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding {
+            "[ "
+        } else {
+            "["
+        }
+        .to_string();
+        arr_start[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding {
+            "[ "
+        } else {
+            "["
+        }
+        .to_string();
 
         let mut arr_end = vec![String::new(); 3];
         arr_end[BracketPaddingType::Empty as usize] = "]".to_string();
-        arr_end[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding { " ]" } else { "]" }.to_string();
-        arr_end[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding { " ]" } else { "]" }.to_string();
+        arr_end[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding {
+            " ]"
+        } else {
+            "]"
+        }
+        .to_string();
+        arr_end[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding {
+            " ]"
+        } else {
+            "]"
+        }
+        .to_string();
 
         let mut obj_start = vec![String::new(); 3];
         obj_start[BracketPaddingType::Empty as usize] = "{".to_string();
-        obj_start[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding { "{ " } else { "{" }.to_string();
-        obj_start[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding { "{ " } else { "{" }.to_string();
+        obj_start[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding {
+            "{ "
+        } else {
+            "{"
+        }
+        .to_string();
+        obj_start[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding {
+            "{ "
+        } else {
+            "{"
+        }
+        .to_string();
 
         let mut obj_end = vec![String::new(); 3];
         obj_end[BracketPaddingType::Empty as usize] = "}".to_string();
-        obj_end[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding { " }" } else { "}" }.to_string();
-        obj_end[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding { " }" } else { "}" }.to_string();
+        obj_end[BracketPaddingType::Simple as usize] = if opts.simple_bracket_padding {
+            " }"
+        } else {
+            "}"
+        }
+        .to_string();
+        obj_end[BracketPaddingType::Complex as usize] = if opts.nested_bracket_padding {
+            " }"
+        } else {
+            "}"
+        }
+        .to_string();
 
         let comma = if opts.comma_padding { ", " } else { "," }.to_string();
         let colon = if opts.colon_padding { ": " } else { ":" }.to_string();
         let comment = if opts.comment_padding { " " } else { "" }.to_string();
-        let eol = if opts.json_eol_style == EolStyle::Crlf { "\r\n" } else { "\n" }.to_string();
+        let eol = if opts.json_eol_style == EolStyle::Crlf {
+            "\r\n"
+        } else {
+            "\n"
+        }
+        .to_string();
 
         let arr_start_len = arr_start.iter().map(|s| str_len_func(s)).collect();
         let arr_end_len = arr_end.iter().map(|s| str_len_func(s)).collect();
@@ -110,7 +155,11 @@ impl PaddedFormattingTokens {
 
         let indent_strings = vec![
             String::new(),
-            if opts.use_tab_to_indent { "\t".to_string() } else { " ".repeat(opts.indent_spaces) },
+            if opts.use_tab_to_indent {
+                "\t".to_string()
+            } else {
+                " ".repeat(opts.indent_spaces)
+            },
         ];
 
         let comma_len = str_len_func(&comma);

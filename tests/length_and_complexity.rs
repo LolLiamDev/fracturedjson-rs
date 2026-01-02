@@ -49,7 +49,14 @@ fn correct_line_count_for_multiline_compact() {
 
 #[test]
 fn correct_line_count_for_line_length() {
-    let cases = vec![(100, 3, 1), (90, 3, 4), (70, 3, 5), (50, 3, 9), (57, 3, 9), (50, 2, 6)];
+    let cases = vec![
+        (100, 3, 1),
+        (90, 3, 4),
+        (70, 3, 5),
+        (50, 3, 9),
+        (57, 3, 9),
+        (50, 2, 6),
+    ];
     for (total_len, items_per_row, exp_lines) in cases {
         let input_lines = [
             "[",
@@ -66,6 +73,12 @@ fn correct_line_count_for_line_length() {
 
         let output = formatter.reformat(&input, 0).unwrap();
         let output_lines: Vec<&str> = output.trim_end().split('\n').collect();
-        assert_eq!(output_lines.len(), exp_lines, "total_len={}, items_per_row={}", total_len, items_per_row);
+        assert_eq!(
+            output_lines.len(),
+            exp_lines,
+            "total_len={}, items_per_row={}",
+            total_len,
+            items_per_row
+        );
     }
 }

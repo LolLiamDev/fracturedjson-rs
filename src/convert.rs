@@ -23,8 +23,16 @@ pub fn convert_value_to_dom(
             item.value = "null".to_string();
         }
         serde_json::Value::Bool(val) => {
-            item.item_type = if *val { JsonItemType::True } else { JsonItemType::False };
-            item.value = if *val { "true".to_string() } else { "false".to_string() };
+            item.item_type = if *val {
+                JsonItemType::True
+            } else {
+                JsonItemType::False
+            };
+            item.value = if *val {
+                "true".to_string()
+            } else {
+                "false".to_string()
+            };
         }
         serde_json::Value::Number(num) => {
             item.item_type = JsonItemType::Number;
@@ -42,7 +50,8 @@ pub fn convert_value_to_dom(
                 if let Some(child_item) = converted {
                     children.push(child_item);
                 } else {
-                    let null_item = convert_value_to_dom(&serde_json::Value::Null, None, recursion_limit - 1)?;
+                    let null_item =
+                        convert_value_to_dom(&serde_json::Value::Null, None, recursion_limit - 1)?;
                     if let Some(null_item) = null_item {
                         children.push(null_item);
                     }

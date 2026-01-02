@@ -27,8 +27,16 @@ impl ScannerState {
             original_text: original_text.to_string(),
             chars,
             byte_indices,
-            current_position: InputPosition { index: 0, row: 0, column: 0 },
-            token_position: InputPosition { index: 0, row: 0, column: 0 },
+            current_position: InputPosition {
+                index: 0,
+                row: 0,
+                column: 0,
+            },
+            token_position: InputPosition {
+                index: 0,
+                row: 0,
+                column: 0,
+            },
             non_whitespace_since_last_newline: false,
         }
     }
@@ -103,7 +111,9 @@ pub struct TokenGenerator {
 
 impl TokenGenerator {
     pub fn new(input_json: &str) -> Self {
-        Self { state: ScannerState::new(input_json) }
+        Self {
+            state: ScannerState::new(input_json),
+        }
     }
 }
 
@@ -133,10 +143,34 @@ impl Iterator for TokenGenerator {
                         return Some(Ok(token));
                     }
                 }
-                '{' => return Some(process_single_char(&mut self.state, "{", TokenType::BeginObject)),
-                '}' => return Some(process_single_char(&mut self.state, "}", TokenType::EndObject)),
-                '[' => return Some(process_single_char(&mut self.state, "[", TokenType::BeginArray)),
-                ']' => return Some(process_single_char(&mut self.state, "]", TokenType::EndArray)),
+                '{' => {
+                    return Some(process_single_char(
+                        &mut self.state,
+                        "{",
+                        TokenType::BeginObject,
+                    ))
+                }
+                '}' => {
+                    return Some(process_single_char(
+                        &mut self.state,
+                        "}",
+                        TokenType::EndObject,
+                    ))
+                }
+                '[' => {
+                    return Some(process_single_char(
+                        &mut self.state,
+                        "[",
+                        TokenType::BeginArray,
+                    ))
+                }
+                ']' => {
+                    return Some(process_single_char(
+                        &mut self.state,
+                        "]",
+                        TokenType::EndArray,
+                    ))
+                }
                 ':' => return Some(process_single_char(&mut self.state, ":", TokenType::Colon)),
                 ',' => return Some(process_single_char(&mut self.state, ",", TokenType::Comma)),
                 't' => return Some(process_keyword(&mut self.state, "true", TokenType::True)),
@@ -293,7 +327,9 @@ fn process_number(state: &mut ScannerState) -> Result<JsonToken, FracturedJsonEr
                 NumberPhase::PastFirstDigitOfWhole
                 | NumberPhase::PastWhole
                 | NumberPhase::PastFirstDigitOfFractional
-                | NumberPhase::PastFirstDigitOfExponent => Ok(state.make_token_from_buffer(TokenType::Number, false)),
+                | NumberPhase::PastFirstDigitOfExponent => {
+                    Ok(state.make_token_from_buffer(TokenType::Number, false))
+                }
                 _ => Err(state.error("Unexpected end of input while processing number")),
             };
         }
@@ -390,11 +426,11 @@ fn process_number(state: &mut ScannerState) -> Result<JsonToken, FracturedJsonEr
 }
 
 fn is_digit(ch: char) -> bool {
-    ch >= '0' && ch <= '9'
+    ch.is_ascii_digit()
 }
 
 fn is_hex(ch: char) -> bool {
-    (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
+    ch.is_ascii_hexdigit()
 }
 
 fn is_legal_after_backslash(ch: char) -> bool {
@@ -403,7 +439,7 @@ fn is_legal_after_backslash(ch: char) -> bool {
 
 fn is_control(ch: char) -> bool {
     let code = ch as u32;
-    (code <= 0x1F) || (code == 0x7F) || (code >= 0x80 && code <= 0x9F)
+    (code <= 0x1F) || (code == 0x7F) || (0x80..=0x9F).contains(&code)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -474,10 +510,11 @@ mod tests {
                 input.to_string()
             };
 
-            let results: Vec<JsonToken> = match TokenGenerator::new(input).collect::<Result<Vec<_>, _>>() {
-                Ok(tokens) => tokens,
-                Err(err) => panic!("input={} err={}", input, err),
-            };
+            let results: Vec<JsonToken> =
+                match TokenGenerator::new(input).collect::<Result<Vec<_>, _>>() {
+                    Ok(tokens) => tokens,
+                    Err(err) => panic!("input={} err={}", input, err),
+                };
             assert_eq!(results.len(), 1, "input={}", input);
             assert_eq!(results[0].text, possibly_trimmed);
             assert_eq!(results[0].token_type, token_type);
@@ -505,10 +542,11 @@ mod tests {
         ];
 
         for (input, index, row, column) in cases {
-            let results: Vec<JsonToken> = match TokenGenerator::new(input).collect::<Result<Vec<_>, _>>() {
-                Ok(tokens) => tokens,
-                Err(err) => panic!("input={} err={}", input, err),
-            };
+            let results: Vec<JsonToken> =
+                match TokenGenerator::new(input).collect::<Result<Vec<_>, _>>() {
+                    Ok(tokens) => tokens,
+                    Err(err) => panic!("input={} err={}", input, err),
+                };
             assert_eq!(results.len(), 2);
             assert_eq!(results[1].input_position.index, index);
             assert_eq!(results[1].input_position.row, row);
@@ -541,7 +579,8 @@ mod tests {
         ];
 
         for input in cases {
-            let result: Result<Vec<JsonToken>, FracturedJsonError> = TokenGenerator::new(input).collect();
+            let result: Result<Vec<JsonToken>, FracturedJsonError> =
+                TokenGenerator::new(input).collect();
             assert!(result.is_err(), "input={}", input);
             let err = result.err().unwrap();
             let pos = err.input_position.unwrap();
@@ -562,38 +601,173 @@ mod tests {
             "}                           ",
         ];
         let input_string = input_rows.join("\r\n");
-        let block_comment_text = format!("{}\r\n{}", input_rows[4].trim_start(), input_rows[5].trim_end());
+        let block_comment_text = format!(
+            "{}\r\n{}",
+            input_rows[4].trim_start(),
+            input_rows[5].trim_end()
+        );
 
         let expected_tokens = vec![
-            JsonToken { token_type: TokenType::BeginObject, text: "{".to_string(), input_position: InputPosition { index: 0, row: 0, column: 0 } },
-            JsonToken { token_type: TokenType::LineComment, text: "// A line comment".to_string(), input_position: InputPosition { index: 34, row: 1, column: 4 } },
-            JsonToken { token_type: TokenType::String, text: "\"item1\"".to_string(), input_position: InputPosition { index: 64, row: 2, column: 4 } },
-            JsonToken { token_type: TokenType::Colon, text: ":".to_string(), input_position: InputPosition { index: 71, row: 2, column: 11 } },
-            JsonToken { token_type: TokenType::String, text: "\"a string\"".to_string(), input_position: InputPosition { index: 73, row: 2, column: 13 } },
-            JsonToken { token_type: TokenType::Comma, text: ",".to_string(), input_position: InputPosition { index: 83, row: 2, column: 23 } },
-            JsonToken { token_type: TokenType::BlankLine, text: "\n".to_string(), input_position: InputPosition { index: 90, row: 3, column: 0 } },
-            JsonToken { token_type: TokenType::BlockComment, text: block_comment_text, input_position: InputPosition { index: 124, row: 4, column: 4 } },
-            JsonToken { token_type: TokenType::String, text: "\"item2\"".to_string(), input_position: InputPosition { index: 184, row: 6, column: 4 } },
-            JsonToken { token_type: TokenType::Colon, text: ":".to_string(), input_position: InputPosition { index: 191, row: 6, column: 11 } },
-            JsonToken { token_type: TokenType::BeginArray, text: "[".to_string(), input_position: InputPosition { index: 193, row: 6, column: 13 } },
-            JsonToken { token_type: TokenType::Null, text: "null".to_string(), input_position: InputPosition { index: 194, row: 6, column: 14 } },
-            JsonToken { token_type: TokenType::Comma, text: ",".to_string(), input_position: InputPosition { index: 198, row: 6, column: 18 } },
-            JsonToken { token_type: TokenType::Number, text: "-2.0".to_string(), input_position: InputPosition { index: 200, row: 6, column: 20 } },
-            JsonToken { token_type: TokenType::EndArray, text: "]".to_string(), input_position: InputPosition { index: 204, row: 6, column: 24 } },
-            JsonToken { token_type: TokenType::EndObject, text: "}".to_string(), input_position: InputPosition { index: 210, row: 7, column: 0 } },
+            JsonToken {
+                token_type: TokenType::BeginObject,
+                text: "{".to_string(),
+                input_position: InputPosition {
+                    index: 0,
+                    row: 0,
+                    column: 0,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::LineComment,
+                text: "// A line comment".to_string(),
+                input_position: InputPosition {
+                    index: 34,
+                    row: 1,
+                    column: 4,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::String,
+                text: "\"item1\"".to_string(),
+                input_position: InputPosition {
+                    index: 64,
+                    row: 2,
+                    column: 4,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::Colon,
+                text: ":".to_string(),
+                input_position: InputPosition {
+                    index: 71,
+                    row: 2,
+                    column: 11,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::String,
+                text: "\"a string\"".to_string(),
+                input_position: InputPosition {
+                    index: 73,
+                    row: 2,
+                    column: 13,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::Comma,
+                text: ",".to_string(),
+                input_position: InputPosition {
+                    index: 83,
+                    row: 2,
+                    column: 23,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::BlankLine,
+                text: "\n".to_string(),
+                input_position: InputPosition {
+                    index: 90,
+                    row: 3,
+                    column: 0,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::BlockComment,
+                text: block_comment_text,
+                input_position: InputPosition {
+                    index: 124,
+                    row: 4,
+                    column: 4,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::String,
+                text: "\"item2\"".to_string(),
+                input_position: InputPosition {
+                    index: 184,
+                    row: 6,
+                    column: 4,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::Colon,
+                text: ":".to_string(),
+                input_position: InputPosition {
+                    index: 191,
+                    row: 6,
+                    column: 11,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::BeginArray,
+                text: "[".to_string(),
+                input_position: InputPosition {
+                    index: 193,
+                    row: 6,
+                    column: 13,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::Null,
+                text: "null".to_string(),
+                input_position: InputPosition {
+                    index: 194,
+                    row: 6,
+                    column: 14,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::Comma,
+                text: ",".to_string(),
+                input_position: InputPosition {
+                    index: 198,
+                    row: 6,
+                    column: 18,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::Number,
+                text: "-2.0".to_string(),
+                input_position: InputPosition {
+                    index: 200,
+                    row: 6,
+                    column: 20,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::EndArray,
+                text: "]".to_string(),
+                input_position: InputPosition {
+                    index: 204,
+                    row: 6,
+                    column: 24,
+                },
+            },
+            JsonToken {
+                token_type: TokenType::EndObject,
+                text: "}".to_string(),
+                input_position: InputPosition {
+                    index: 210,
+                    row: 7,
+                    column: 0,
+                },
+            },
         ];
 
-        let results: Vec<JsonToken> = match TokenGenerator::new(&input_string).collect::<Result<Vec<_>, _>>() {
-            Ok(tokens) => tokens,
-            Err(err) => panic!("err={}", err),
-        };
+        let results: Vec<JsonToken> =
+            match TokenGenerator::new(&input_string).collect::<Result<Vec<_>, _>>() {
+                Ok(tokens) => tokens,
+                Err(err) => panic!("err={}", err),
+            };
 
         assert_eq!(results, expected_tokens);
     }
 
     #[test]
     fn empty_input_is_handled() {
-        let results: Vec<JsonToken> = TokenGenerator::new("").collect::<Result<Vec<_>, _>>().unwrap();
+        let results: Vec<JsonToken> = TokenGenerator::new("")
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
         assert_eq!(results.len(), 0);
     }
 }

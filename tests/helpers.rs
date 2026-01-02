@@ -11,7 +11,9 @@ pub fn do_instances_line_up(lines: &[String], substring: &str) -> bool {
 }
 
 pub fn find_char_index(haystack: &str, needle: &str) -> Option<usize> {
-    haystack.find(needle).map(|byte_idx| haystack[..byte_idx].chars().count())
+    haystack
+        .find(needle)
+        .map(|byte_idx| haystack[..byte_idx].chars().count())
 }
 
 pub fn normalize_quotes(input: &str) -> String {
@@ -23,8 +25,5 @@ pub fn join_lines(lines: &[&str]) -> String {
 }
 
 pub fn split_trimmed_lines(text: &str, eol: &str) -> Vec<String> {
-    text.trim_end()
-        .split(eol)
-        .map(|s| s.to_string())
-        .collect()
+    text.trim_end().split(eol).map(|s| s.to_string()).collect()
 }

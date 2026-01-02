@@ -5,12 +5,7 @@ use helpers::{do_instances_line_up, normalize_quotes};
 
 #[test]
 fn always_expand_depth_honored() {
-    let input_lines = [
-        "[",
-        "[ {'x':1}, false ],",
-        "{ 'a':[2], 'b':[3] }",
-        "]",
-    ];
+    let input_lines = ["[", "[ {'x':1}, false ],", "{ 'a':[2], 'b':[3] }", "]"];
     let input = normalize_quotes(&input_lines.join("\n"));
 
     let mut formatter = Formatter::new();
@@ -40,7 +35,11 @@ fn always_expand_depth_doesnt_prevent_table_formatting() {
     formatter.options.always_expand_depth = 0;
 
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 4);
     assert!(do_instances_line_up(&output_lines, ","));

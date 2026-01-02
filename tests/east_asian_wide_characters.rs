@@ -18,7 +18,11 @@ fn pads_wide_chars_correctly() {
     let mut formatter = Formatter::new();
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert!(do_instances_line_up(&output_lines, "Job"));
     assert!(do_instances_line_up(&output_lines, "Born"));

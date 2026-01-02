@@ -3,7 +3,14 @@ name = "fracturedjson"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+authors = ["Felipe Coury <felipe.coury@gmail.com>"]
 description = "Rust port of FracturedJsonJs: human-friendly JSON formatter with optional comment support."
+repository = "https://github.com/fcoury/fracturedjson-rs"
+homepage = "https://j-brooke.github.io/FracturedJson/"
+documentation = "https://docs.rs/fracturedjson"
+readme = "README.md"
+keywords = ["json", "formatter", "pretty-print", "serialization"]
+categories = ["encoding", "text-processing"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

@@ -80,14 +80,25 @@ impl TableTemplate {
         }
     }
 
-    pub fn format_number(&self, buffer: &mut StringJoinBuffer, item: &JsonItem, comma_before_pad_type: &str) {
+    pub fn format_number(
+        &self,
+        buffer: &mut StringJoinBuffer,
+        item: &JsonItem,
+        comma_before_pad_type: &str,
+    ) {
         match self.number_list_alignment {
             NumberListAlignment::Left => {
-                buffer.add(&item.value).add(comma_before_pad_type).spaces(self.max_value_length - item.value_length);
+                buffer
+                    .add(&item.value)
+                    .add(comma_before_pad_type)
+                    .spaces(self.max_value_length - item.value_length);
                 return;
             }
             NumberListAlignment::Right => {
-                buffer.spaces(self.max_value_length - item.value_length).add(&item.value).add(comma_before_pad_type);
+                buffer
+                    .spaces(self.max_value_length - item.value_length)
+                    .add(&item.value)
+                    .add(comma_before_pad_type);
                 return;
             }
             _ => {}
@@ -121,11 +132,17 @@ impl TableTemplate {
             (left_pad, right_pad)
         } else {
             let left_pad = self.max_dig_before_dec.saturating_sub(item.value_length);
-            let right_pad = self.composite_value_length.saturating_sub(self.max_dig_before_dec);
+            let right_pad = self
+                .composite_value_length
+                .saturating_sub(self.max_dig_before_dec);
             (left_pad, right_pad)
         };
 
-        buffer.spaces(left_pad).add(&item.value).add(comma_before_pad_type).spaces(right_pad);
+        buffer
+            .spaces(left_pad)
+            .add(&item.value)
+            .add(comma_before_pad_type)
+            .spaces(right_pad);
     }
 
     pub fn atomic_item_size(&self) -> usize {
@@ -183,14 +200,24 @@ impl TableTemplate {
         self.name_length = self.name_length.max(row_segment.name_length);
         self.name_minimum = self.name_minimum.min(row_segment.name_length);
         self.max_value_length = self.max_value_length.max(row_segment.value_length);
-        self.middle_comment_length = self.middle_comment_length.max(row_segment.middle_comment_length);
-        self.prefix_comment_length = self.prefix_comment_length.max(row_segment.prefix_comment_length);
-        self.postfix_comment_length = self.postfix_comment_length.max(row_segment.postfix_comment_length);
+        self.middle_comment_length = self
+            .middle_comment_length
+            .max(row_segment.middle_comment_length);
+        self.prefix_comment_length = self
+            .prefix_comment_length
+            .max(row_segment.prefix_comment_length);
+        self.postfix_comment_length = self
+            .postfix_comment_length
+            .max(row_segment.postfix_comment_length);
         self.is_any_post_comment_line_style |= row_segment.is_post_comment_line_style;
         self.any_middle_comment_has_newline |= row_segment.middle_comment_has_new_line;
 
-        if !matches!(row_segment.item_type, JsonItemType::Array | JsonItemType::Object) {
-            self.max_atomic_value_length = self.max_atomic_value_length.max(row_segment.value_length);
+        if !matches!(
+            row_segment.item_type,
+            JsonItemType::Array | JsonItemType::Object
+        ) {
+            self.max_atomic_value_length =
+                self.max_atomic_value_length.max(row_segment.value_length);
         }
 
         if row_segment.complexity >= 2 {
@@ -204,7 +231,10 @@ impl TableTemplate {
         if self.column_type == TableColumnType::Array && recursive {
             for (i, child) in row_segment.children.iter().enumerate() {
                 if self.children.len() <= i {
-                    self.children.push(TableTemplate::new(self.pads.clone(), self.number_list_alignment));
+                    self.children.push(TableTemplate::new(
+                        self.pads.clone(),
+                        self.number_list_alignment,
+                    ));
                 }
                 self.children[i].measure_row_segment(child, true);
             }
@@ -226,7 +256,8 @@ impl TableTemplate {
                 if let Some(index) = idx {
                     self.children[index].measure_row_segment(row_child, true);
                 } else {
-                    let mut sub_template = TableTemplate::new(self.pads.clone(), self.number_list_alignment);
+                    let mut sub_template =
+                        TableTemplate::new(self.pads.clone(), self.number_list_alignment);
                     sub_template.location_in_parent = Some(row_child.name.clone());
                     sub_template.measure_row_segment(row_child, true);
                     self.children.push(sub_template);
@@ -235,7 +266,10 @@ impl TableTemplate {
         }
 
         let skip_decimal = self.column_type != TableColumnType::Number
-            || matches!(self.number_list_alignment, NumberListAlignment::Left | NumberListAlignment::Right);
+            || matches!(
+                self.number_list_alignment,
+                NumberListAlignment::Left | NumberListAlignment::Right
+            );
         if skip_decimal {
             return;
         }
@@ -270,7 +304,10 @@ impl TableTemplate {
 
     fn prune_and_recompute(&mut self, max_allowed_complexity: usize) {
         let clear_children = max_allowed_complexity == 0
-            || (!matches!(self.column_type, TableColumnType::Array | TableColumnType::Object))
+            || (!matches!(
+                self.column_type,
+                TableColumnType::Array | TableColumnType::Object
+            ))
             || self.row_count < 2;
         if clear_children {
             self.children.clear();
@@ -285,11 +322,15 @@ impl TableTemplate {
         } else if !self.children.is_empty() {
             let total_child_len: usize = self.children.iter().map(|ch| ch.total_length).sum();
             self.composite_value_length = total_child_len
-                + self.pads.comma_len().saturating_mul(self.children.len().saturating_sub(1))
+                + self
+                    .pads
+                    .comma_len()
+                    .saturating_mul(self.children.len().saturating_sub(1))
                 + self.pads.arr_start_len(self.pad_type)
                 + self.pads.arr_end_len(self.pad_type);
             if self.contains_null && self.composite_value_length < self.pads.literal_null_len() {
-                self.shorter_than_null_adjustment = self.pads.literal_null_len() - self.composite_value_length;
+                self.shorter_than_null_adjustment =
+                    self.pads.literal_null_len() - self.composite_value_length;
                 self.composite_value_length = self.pads.literal_null_len();
             }
         } else {
@@ -320,12 +361,20 @@ impl TableTemplate {
         if self.children.is_empty() {
             return 0;
         }
-        let max_child = self.children.iter().map(|ch| ch.get_template_complexity()).max().unwrap_or(0);
+        let max_child = self
+            .children
+            .iter()
+            .map(|ch| ch.get_template_complexity())
+            .max()
+            .unwrap_or(0);
         1 + max_child
     }
 
     fn get_number_field_width(&self) -> usize {
-        if matches!(self.number_list_alignment, NumberListAlignment::Normalize | NumberListAlignment::Decimal) {
+        if matches!(
+            self.number_list_alignment,
+            NumberListAlignment::Normalize | NumberListAlignment::Decimal
+        ) {
             let raw_dec_len = if self.max_dig_after_dec > 0 { 1 } else { 0 };
             return self.max_dig_before_dec + raw_dec_len + self.max_dig_after_dec;
         }
@@ -334,7 +383,7 @@ impl TableTemplate {
 }
 
 fn dot_or_e_index(value: &str) -> Option<usize> {
-    value.find(|c| c == '.' || c == 'e' || c == 'E')
+    value.find(['.', 'e', 'E'])
 }
 
 fn is_truly_zero(value: &str) -> bool {

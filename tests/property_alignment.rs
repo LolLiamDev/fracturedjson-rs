@@ -20,7 +20,11 @@ fn prop_values_aligned() {
     formatter.options.max_compact_array_complexity = -1;
 
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 9);
     assert!(do_instances_line_up(&output_lines, ":"));
@@ -49,7 +53,10 @@ fn prop_values_aligned_but_not_colons() {
     assert!(output_lines[1].contains("\"num\":"));
     assert!(output_lines[2].contains("\"string\":"));
     assert!(output_lines[3].contains("\"arrayWithLongName\":"));
-    assert_eq!(output_lines[1].find("14"), output_lines[2].find("\"testing"));
+    assert_eq!(
+        output_lines[1].find("14"),
+        output_lines[2].find("\"testing")
+    );
     assert_eq!(output_lines[1].find("14"), output_lines[3].find('['));
 }
 
@@ -117,7 +124,11 @@ fn align_prop_vals_when_simple_comment() {
     formatter.options.max_total_line_length = 80;
 
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 5);
     assert!(do_instances_line_up(&output_lines, "["));
@@ -140,7 +151,11 @@ fn align_prop_vals_when_array_wraps() {
     formatter.options.max_total_line_length = 38;
 
     let output = formatter.reformat(input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 7);
     assert!(do_instances_line_up(&output_lines, "["));

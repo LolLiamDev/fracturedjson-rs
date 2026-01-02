@@ -16,11 +16,16 @@ where
     I: Iterator<Item = Result<JsonToken, FracturedJsonError>>,
 {
     pub fn new(generator: I) -> Self {
-        Self { generator, current: None }
+        Self {
+            generator,
+            current: None,
+        }
     }
 
     pub fn current(&self) -> Result<&JsonToken, FracturedJsonError> {
-        self.current.as_ref().ok_or_else(|| FracturedJsonError::simple("Illegal enumerator usage"))
+        self.current
+            .as_ref()
+            .ok_or_else(|| FracturedJsonError::simple("Illegal enumerator usage"))
     }
 
     pub fn move_next(&mut self) -> Result<bool, FracturedJsonError> {
@@ -74,7 +79,10 @@ impl Parser {
             }
 
             let item = self.parse_item(enumerator)?;
-            let is_comment = matches!(item.item_type, JsonItemType::BlockComment | JsonItemType::LineComment);
+            let is_comment = matches!(
+                item.item_type,
+                JsonItemType::BlockComment | JsonItemType::LineComment
+            );
             let is_blank = item.item_type == JsonItemType::BlankLine;
 
             if is_blank {
@@ -105,7 +113,10 @@ impl Parser {
         }
     }
 
-    fn parse_item<I>(&self, enumerator: &mut TokenEnumerator<I>) -> Result<JsonItem, FracturedJsonError>
+    fn parse_item<I>(
+        &self,
+        enumerator: &mut TokenEnumerator<I>,
+    ) -> Result<JsonItem, FracturedJsonError>
     where
         I: Iterator<Item = Result<JsonToken, FracturedJsonError>>,
     {
@@ -118,15 +129,19 @@ impl Parser {
     }
 
     fn parse_simple(&self, token: &JsonToken) -> Result<JsonItem, FracturedJsonError> {
-        let mut item = JsonItem::default();
-        item.item_type = Self::item_type_from_token_type(token)?;
-        item.value = token.text.clone();
-        item.input_position = token.input_position;
-        item.complexity = 0;
-        Ok(item)
+        Ok(JsonItem {
+            item_type: Self::item_type_from_token_type(token)?,
+            value: token.text.clone(),
+            input_position: token.input_position,
+            complexity: 0,
+            ..Default::default()
+        })
     }
 
-    fn parse_array<I>(&self, enumerator: &mut TokenEnumerator<I>) -> Result<JsonItem, FracturedJsonError>
+    fn parse_array<I>(
+        &self,
+        enumerator: &mut TokenEnumerator<I>,
+    ) -> Result<JsonItem, FracturedJsonError>
     where
         I: Iterator<Item = Result<JsonToken, FracturedJsonError>>,
     {
@@ -151,15 +166,21 @@ impl Parser {
         while !end_of_array_found {
             let token = Self::get_next_token_or_throw(enumerator, starting_input_position)?;
 
-            let unplaced_needs_home = unplaced_comment.as_ref().map(|comment| {
-                comment.input_position.row != token.input_position.row || token.token_type == TokenType::EndArray
-            }).unwrap_or(false);
+            let unplaced_needs_home = unplaced_comment
+                .as_ref()
+                .map(|comment| {
+                    comment.input_position.row != token.input_position.row
+                        || token.token_type == TokenType::EndArray
+                })
+                .unwrap_or(false);
 
             if unplaced_needs_home {
                 if let Some(idx) = elem_needing_post_comment_idx {
                     if let Some(elem) = child_list.get_mut(idx) {
                         elem.postfix_comment = unplaced_comment.as_ref().unwrap().value.clone();
-                        elem.is_post_comment_line_style = unplaced_comment.as_ref().unwrap().item_type == JsonItemType::LineComment;
+                        elem.is_post_comment_line_style =
+                            unplaced_comment.as_ref().unwrap().item_type
+                                == JsonItemType::LineComment;
                     }
                 } else {
                     child_list.push(unplaced_comment.as_ref().unwrap().clone());
@@ -175,7 +196,8 @@ impl Parser {
 
             match token.token_type {
                 TokenType::EndArray => {
-                    if comma_status == CommaStatus::CommaSeen && !self.options.allow_trailing_commas {
+                    if comma_status == CommaStatus::CommaSeen && !self.options.allow_trailing_commas
+                    {
                         return Err(FracturedJsonError::new(
                             "Array may not end with a comma with current options",
                             Some(token.input_position),
@@ -294,20 +316,27 @@ impl Parser {
             }
         }
 
-        let mut array_item = JsonItem::default();
-        array_item.item_type = JsonItemType::Array;
-        array_item.input_position = starting_input_position;
-        array_item.complexity = this_array_complexity;
-        array_item.children = child_list;
-        Ok(array_item)
+        Ok(JsonItem {
+            item_type: JsonItemType::Array,
+            input_position: starting_input_position,
+            complexity: this_array_complexity,
+            children: child_list,
+            ..Default::default()
+        })
     }
 
-    fn parse_object<I>(&self, enumerator: &mut TokenEnumerator<I>) -> Result<JsonItem, FracturedJsonError>
+    fn parse_object<I>(
+        &self,
+        enumerator: &mut TokenEnumerator<I>,
+    ) -> Result<JsonItem, FracturedJsonError>
     where
         I: Iterator<Item = Result<JsonToken, FracturedJsonError>>,
     {
         if enumerator.current()?.token_type != TokenType::BeginObject {
-            return Err(FracturedJsonError::new("Parser logic error", Some(enumerator.current()?.input_position)));
+            return Err(FracturedJsonError::new(
+                "Parser logic error",
+                Some(enumerator.current()?.input_position),
+            ));
         }
 
         let starting_input_position = enumerator.current()?.input_position;
@@ -329,13 +358,20 @@ impl Parser {
 
             let is_new_line = line_prop_value_ends != token.input_position.row as isize;
             let is_end_of_object = token.token_type == TokenType::EndObject;
-            let starting_next_prop_name = token.token_type == TokenType::String && phase == ObjectPhase::AfterComma;
+            let starting_next_prop_name =
+                token.token_type == TokenType::String && phase == ObjectPhase::AfterComma;
             let is_excess_post_comment = after_prop_comment.is_some()
-                && matches!(token.token_type, TokenType::BlockComment | TokenType::LineComment);
+                && matches!(
+                    token.token_type,
+                    TokenType::BlockComment | TokenType::LineComment
+                );
 
             let need_to_flush = property_name.is_some()
                 && property_value.is_some()
-                && (is_new_line || is_end_of_object || starting_next_prop_name || is_excess_post_comment);
+                && (is_new_line
+                    || is_end_of_object
+                    || starting_next_prop_name
+                    || is_excess_post_comment);
 
             if need_to_flush {
                 let mut comment_to_hold_for_next_elem: Option<JsonItem> = None;
@@ -352,7 +388,8 @@ impl Parser {
                     &mut mid_prop_comments,
                     after_prop_comment.take(),
                 );
-                this_obj_complexity = this_obj_complexity.max(property_value.as_ref().unwrap().complexity + 1);
+                this_obj_complexity =
+                    this_obj_complexity.max(property_value.as_ref().unwrap().complexity + 1);
                 property_name = None;
                 property_value = None;
                 before_prop_comments.clear();
@@ -372,7 +409,7 @@ impl Parser {
                     if matches!(phase, ObjectPhase::AfterPropName | ObjectPhase::AfterColon) {
                         continue;
                     }
-                    child_list.extend(before_prop_comments.drain(..));
+                    child_list.append(&mut before_prop_comments);
                     child_list.push(self.parse_simple(&token)?);
                 }
                 TokenType::BlockComment | TokenType::LineComment => {
@@ -387,16 +424,21 @@ impl Parser {
                     }
                     if matches!(phase, ObjectPhase::BeforePropName) || property_name.is_none() {
                         before_prop_comments.push(self.parse_simple(&token)?);
-                    } else if matches!(phase, ObjectPhase::AfterPropName | ObjectPhase::AfterColon) {
+                    } else if matches!(phase, ObjectPhase::AfterPropName | ObjectPhase::AfterColon)
+                    {
                         mid_prop_comments.push(token);
                     } else {
                         after_prop_comment = Some(self.parse_simple(&token)?);
-                        after_prop_comment_was_after_comma = matches!(phase, ObjectPhase::AfterComma);
+                        after_prop_comment_was_after_comma =
+                            matches!(phase, ObjectPhase::AfterComma);
                     }
                 }
                 TokenType::EndObject => {
                     if matches!(phase, ObjectPhase::AfterPropName | ObjectPhase::AfterColon) {
-                        return Err(FracturedJsonError::new("Unexpected end of object", Some(token.input_position)));
+                        return Err(FracturedJsonError::new(
+                            "Unexpected end of object",
+                            Some(token.input_position),
+                        ));
                     }
                     end_of_object = true;
                 }
@@ -465,12 +507,13 @@ impl Parser {
             ));
         }
 
-        let mut obj_item = JsonItem::default();
-        obj_item.item_type = JsonItemType::Object;
-        obj_item.input_position = starting_input_position;
-        obj_item.complexity = this_obj_complexity;
-        obj_item.children = child_list;
-        Ok(obj_item)
+        Ok(JsonItem {
+            item_type: JsonItemType::Object,
+            input_position: starting_input_position,
+            complexity: this_obj_complexity,
+            children: child_list,
+            ..Default::default()
+        })
     }
 
     fn item_type_from_token_type(token: &JsonToken) -> Result<JsonItemType, FracturedJsonError> {
@@ -483,7 +526,10 @@ impl Parser {
             TokenType::BlankLine => Ok(JsonItemType::BlankLine),
             TokenType::BlockComment => Ok(JsonItemType::BlockComment),
             TokenType::LineComment => Ok(JsonItemType::LineComment),
-            _ => Err(FracturedJsonError::new("Unexpected Token", Some(token.input_position))),
+            _ => Err(FracturedJsonError::new(
+                "Unexpected Token",
+                Some(token.input_position),
+            )),
         }
     }
 
@@ -513,7 +559,7 @@ impl Parser {
         element: &JsonItem,
         value_ending_line: isize,
         before_comments: &mut Vec<JsonItem>,
-        mid_comments: &mut Vec<JsonToken>,
+        mid_comments: &mut [JsonToken],
         after_comment: Option<JsonItem>,
     ) {
         let mut element = element.clone();
@@ -537,9 +583,9 @@ impl Parser {
                 && last.input_position.row == element.input_position.row
             {
                 element.prefix_comment = last.value;
-                obj_item_list.extend(before_comments.drain(..));
+                obj_item_list.append(before_comments);
             } else {
-                obj_item_list.extend(before_comments.drain(..));
+                obj_item_list.append(before_comments);
                 obj_item_list.push(last);
             }
         }
@@ -581,8 +627,8 @@ enum ObjectPhase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::options::{CommentPolicy, FracturedJsonOptions};
     use crate::model::JsonItemType;
+    use crate::options::{CommentPolicy, FracturedJsonOptions};
 
     #[test]
     fn test_simple_and_valid_array() {
@@ -602,12 +648,19 @@ mod tests {
             JsonItemType::False,
             JsonItemType::Array,
         ];
-        let found_child_types: Vec<JsonItemType> =
-            doc_model[0].children.iter().map(|ch| ch.item_type).collect();
+        let found_child_types: Vec<JsonItemType> = doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.item_type)
+            .collect();
         assert_eq!(expected_child_types, found_child_types);
 
         let expected_text = vec!["4.7", "true", "null", "\"a string\"", "", "false", ""];
-        let found_text: Vec<String> = doc_model[0].children.iter().map(|ch| ch.value.clone()).collect();
+        let found_text: Vec<String> = doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.value.clone())
+            .collect();
         assert_eq!(expected_text, found_text);
     }
 
@@ -664,7 +717,10 @@ mod tests {
         assert_eq!(doc_model[0].children[0].item_type, JsonItemType::Number);
         assert_eq!(doc_model[0].children[0].prefix_comment, "/*a*/");
         assert_eq!(doc_model[0].children[0].postfix_comment, "/*b*/");
-        assert_eq!(doc_model[0].children[1].item_type, JsonItemType::BlockComment);
+        assert_eq!(
+            doc_model[0].children[1].item_type,
+            JsonItemType::BlockComment
+        );
         assert_eq!(doc_model[0].children[1].value, "/*c*/");
     }
 
@@ -682,7 +738,10 @@ mod tests {
 
         assert_eq!(doc_model.len(), 1);
         assert_eq!(doc_model[0].children.len(), 2);
-        assert_eq!(doc_model[0].children[0].item_type, JsonItemType::BlockComment);
+        assert_eq!(
+            doc_model[0].children[0].item_type,
+            JsonItemType::BlockComment
+        );
         assert_eq!(doc_model[0].children[0].value, "/*a*/");
         assert_eq!(doc_model[0].children[1].item_type, JsonItemType::Number);
         assert_eq!(doc_model[0].children[1].prefix_comment, "/*b*/");
@@ -788,7 +847,17 @@ mod tests {
 
     #[test]
     fn array_blank_lines_are_preserved_or_removed() {
-        let input = ["[", "", "    //comment", "    true,", "", "    ", "    false", "]"].join("\r\n");
+        let input = [
+            "[",
+            "",
+            "    //comment",
+            "    true,",
+            "",
+            "    ",
+            "    false",
+            "]",
+        ]
+        .join("\r\n");
 
         let mut preserve_options = FracturedJsonOptions::default();
         preserve_options.comment_policy = CommentPolicy::Preserve;
@@ -808,8 +877,11 @@ mod tests {
             JsonItemType::BlankLine,
             JsonItemType::False,
         ];
-        let preserve_found_types: Vec<JsonItemType> =
-            preserve_doc_model[0].children.iter().map(|ch| ch.item_type).collect();
+        let preserve_found_types: Vec<JsonItemType> = preserve_doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.item_type)
+            .collect();
         assert_eq!(preserve_expected_types, preserve_found_types);
 
         let mut remove_options = FracturedJsonOptions::default();
@@ -823,8 +895,11 @@ mod tests {
         assert_eq!(remove_doc_model.len(), 1);
         assert_eq!(remove_doc_model[0].item_type, JsonItemType::Array);
         let remove_expected_types = vec![JsonItemType::True, JsonItemType::False];
-        let remove_found_types: Vec<JsonItemType> =
-            remove_doc_model[0].children.iter().map(|ch| ch.item_type).collect();
+        let remove_found_types: Vec<JsonItemType> = remove_doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.item_type)
+            .collect();
         assert_eq!(remove_expected_types, remove_found_types);
     }
 
@@ -846,24 +921,45 @@ mod tests {
             JsonItemType::Object,
             JsonItemType::String,
         ];
-        let found_child_types: Vec<JsonItemType> =
-            doc_model[0].children.iter().map(|ch| ch.item_type).collect();
+        let found_child_types: Vec<JsonItemType> = doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.item_type)
+            .collect();
         assert_eq!(expected_child_types, found_child_types);
 
         let expected_prop_names = vec![
             "\"a\"", "\"b\"", "\"c\"", "\"d\"", "\"e\"", "\"f\"", "\"g\"",
         ];
-        let found_prop_names: Vec<String> = doc_model[0].children.iter().map(|ch| ch.name.clone()).collect();
+        let found_prop_names: Vec<String> = doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.name.clone())
+            .collect();
         assert_eq!(expected_prop_names, found_prop_names);
 
-        let expected_text = vec!["5.2", "false", "null", "true", "", "", "\"a string\""];        
-        let found_text: Vec<String> = doc_model[0].children.iter().map(|ch| ch.value.clone()).collect();
+        let expected_text = vec!["5.2", "false", "null", "true", "", "", "\"a string\""];
+        let found_text: Vec<String> = doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.value.clone())
+            .collect();
         assert_eq!(expected_text, found_text);
     }
 
     #[test]
     fn object_blank_lines_are_preserved_or_removed() {
-        let input = ["{", "", "    //comment", "    \"w\": true,", "", "    ", "    \"x\": false", "}"].join("\r\n");
+        let input = [
+            "{",
+            "",
+            "    //comment",
+            "    \"w\": true,",
+            "",
+            "    ",
+            "    \"x\": false",
+            "}",
+        ]
+        .join("\r\n");
 
         let mut preserve_options = FracturedJsonOptions::default();
         preserve_options.comment_policy = CommentPolicy::Preserve;
@@ -883,8 +979,11 @@ mod tests {
             JsonItemType::BlankLine,
             JsonItemType::False,
         ];
-        let preserve_found_types: Vec<JsonItemType> =
-            preserve_doc_model[0].children.iter().map(|ch| ch.item_type).collect();
+        let preserve_found_types: Vec<JsonItemType> = preserve_doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.item_type)
+            .collect();
         assert_eq!(preserve_expected_types, preserve_found_types);
 
         let mut remove_options = FracturedJsonOptions::default();
@@ -898,8 +997,11 @@ mod tests {
         assert_eq!(remove_doc_model.len(), 1);
         assert_eq!(remove_doc_model[0].item_type, JsonItemType::Object);
         let remove_expected_types = vec![JsonItemType::True, JsonItemType::False];
-        let remove_found_types: Vec<JsonItemType> =
-            remove_doc_model[0].children.iter().map(|ch| ch.item_type).collect();
+        let remove_found_types: Vec<JsonItemType> = remove_doc_model[0]
+            .children
+            .iter()
+            .map(|ch| ch.item_type)
+            .collect();
         assert_eq!(remove_expected_types, remove_found_types);
     }
 
@@ -1070,7 +1172,14 @@ mod tests {
 
     #[test]
     fn object_comments_for_multiline_element() {
-        let input = ["{", "    /*a*/ \"w\": [", "        1, 2, 3", "    ] //b", "}"].join("\r\n");
+        let input = [
+            "{",
+            "    /*a*/ \"w\": [",
+            "        1, 2, 3",
+            "    ] //b",
+            "}",
+        ]
+        .join("\r\n");
 
         let mut options = FracturedJsonOptions::default();
         options.comment_policy = CommentPolicy::Preserve;
@@ -1146,7 +1255,11 @@ mod tests {
 
         let parser = Parser::new(FracturedJsonOptions::default());
         for input in cases {
-            assert!(parser.parse_top_level(input, false).is_err(), "input={}", input);
+            assert!(
+                parser.parse_top_level(input, false).is_err(),
+                "input={}",
+                input
+            );
         }
     }
 

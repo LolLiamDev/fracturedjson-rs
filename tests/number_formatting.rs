@@ -1,6 +1,8 @@
 mod helpers;
 
-use fracturedjson::{EolStyle, Formatter, FracturedJsonOptions, NumberListAlignment, TableCommaPlacement};
+use fracturedjson::{
+    EolStyle, Formatter, FracturedJsonOptions, NumberListAlignment, TableCommaPlacement,
+};
 
 #[test]
 fn inline_array_doesnt_justify_numbers() {
@@ -59,7 +61,8 @@ fn big_numbers_invalidate_alignment_1() {
 #[test]
 fn big_numbers_invalidate_alignment_2() {
     let input = "[1, 2.1, 3, 12345678901234567]";
-    let expected_output = "[\n    1                , 2.1              , 3                , 12345678901234567\n]";
+    let expected_output =
+        "[\n    1                , 2.1              , 3                , 12345678901234567\n]";
 
     let mut formatter = Formatter::new();
     formatter.options.max_inline_complexity = -1;

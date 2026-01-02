@@ -113,19 +113,17 @@ fn split_when_middle_comment_requires_break_2() {
 
 #[test]
 fn multiline_comments_preserve_relative_spacing() {
-    let input_lines = [
-        "[ 1,",
-        "  /* +",
-        "     +",
-        "     + */",
-        "  2]",
-    ];
+    let input_lines = ["[ 1,", "  /* +", "     +", "     + */", "  2]"];
     let input = normalize_quotes(&input_lines.join("\n"));
     let mut formatter = Formatter::new();
     formatter.options.comment_policy = CommentPolicy::Preserve;
 
     let output = formatter.reformat(&input, 0).unwrap();
-    let output_lines: Vec<String> = output.trim_end().split('\n').map(|s| s.to_string()).collect();
+    let output_lines: Vec<String> = output
+        .trim_end()
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect();
 
     assert_eq!(output_lines.len(), 7);
     assert!(do_instances_line_up(&output_lines, "+"));
@@ -133,10 +131,7 @@ fn multiline_comments_preserve_relative_spacing() {
 
 #[test]
 fn ambiguous_comments_in_arrays_respect_commas() {
-    let input_lines = [
-        "[ [ 'a' /*1*/, 'b' ],",
-        "  [ 'c', /*2*/ 'd' ] ]",
-    ];
+    let input_lines = ["[ [ 'a' /*1*/, 'b' ],", "  [ 'c', /*2*/ 'd' ] ]"];
     let input = normalize_quotes(&input_lines.join("\n"));
     let mut formatter = Formatter::new();
     formatter.options.comment_policy = CommentPolicy::Preserve;
