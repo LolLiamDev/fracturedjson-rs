@@ -15,6 +15,16 @@ This crate is part of the FracturedJson family:
 
 ## Installation
 
+### Command-Line Tool
+
+Install the `fjson` CLI:
+
+```sh
+cargo install fracturedjson
+```
+
+### Library
+
 Add to your `Cargo.toml`:
 
 ```toml
@@ -22,7 +32,46 @@ Add to your `Cargo.toml`:
 fracturedjson = "0.1"
 ```
 
-## Usage
+## Command-Line Usage
+
+The `fjson` command works like `jq` but focuses on producing beautifully formatted output:
+
+```sh
+# Format JSON from stdin
+echo '{"name":"Alice","scores":[95,87,92]}' | fjson
+
+# Format a file
+fjson input.json
+
+# Write to a file
+fjson input.json -o output.json
+
+# Minify JSON
+fjson --compact < input.json
+
+# Custom formatting
+fjson --indent 2 --max-width 80 < input.json
+
+# Handle JSON with comments
+fjson --comments preserve < config.jsonc
+```
+
+### CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `-c, --compact` | Minify output |
+| `-w, --max-width N` | Maximum line length (default: 120) |
+| `-i, --indent N` | Spaces per indentation level (default: 4) |
+| `-t, --tabs` | Use tabs instead of spaces |
+| `-o, --output FILE` | Write to file instead of stdout |
+| `--comments MODE` | Handle comments: `error`, `remove`, `preserve` |
+| `--number-align STYLE` | Number alignment: `left`, `right`, `decimal`, `normalize` |
+| `--trailing-commas` | Allow trailing commas in input |
+
+Run `fjson --help` for all options.
+
+## Library Usage
 
 ### Reformat JSON Text
 

@@ -11,6 +11,26 @@
 //! - Long arrays are written with multiple items per line
 //! - Comments (non-standard JSON) can be preserved if enabled
 //!
+//! ## Command-Line Tool
+//!
+//! This crate includes the `fjson` CLI tool for formatting JSON from the terminal:
+//!
+//! ```sh
+//! # Install
+//! cargo install fracturedjson
+//!
+//! # Format JSON from stdin
+//! echo '{"a":1,"b":2}' | fjson
+//!
+//! # Format a file
+//! fjson input.json -o output.json
+//!
+//! # Minify
+//! fjson --compact < input.json
+//! ```
+//!
+//! Run `fjson --help` for all options.
+//!
 //! ## Quick Start
 //!
 //! ```rust

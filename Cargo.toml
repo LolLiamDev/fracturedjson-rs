@@ -10,11 +10,16 @@ homepage = "https://j-brooke.github.io/FracturedJson/"
 documentation = "https://docs.rs/fracturedjson"
 readme = "README.md"
 keywords = ["json", "formatter", "pretty-print", "serialization"]
-categories = ["encoding", "text-processing"]
+categories = ["encoding", "text-processing", "command-line-utilities"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+clap = { version = "4.4", features = ["derive"] }
 
 [dev-dependencies]
 unicode-width = "0.1"
+
+[[bin]]
+name = "fjson"
+path = "src/bin/fjson.rs"
