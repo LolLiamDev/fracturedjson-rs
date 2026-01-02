@@ -8,8 +8,54 @@ use crate::options::{FracturedJsonOptions, TableCommaPlacement};
 use crate::parser::Parser;
 use crate::table_template::TableTemplate;
 
+/// The main JSON formatter.
+///
+/// `Formatter` takes JSON input (either as text or Rust values) and produces
+/// human-readable, well-formatted output according to the configured options.
+///
+/// # Example
+///
+/// ```rust
+/// use fracturedjson::Formatter;
+///
+/// let mut formatter = Formatter::new();
+///
+/// // Format JSON text
+/// let output = formatter.reformat(r#"{"a":1,"b":2}"#, 0).unwrap();
+/// assert!(output.contains("\"a\": 1"));
+///
+/// // Minify JSON
+/// let compact = formatter.minify(r#"{ "a": 1, "b": 2 }"#).unwrap();
+/// assert_eq!(compact, r#"{"a":1,"b":2}"#);
+/// ```
+///
+/// # Reusing the Formatter
+///
+/// A single `Formatter` instance can be reused for multiple formatting operations.
+/// The configuration in `options` persists across calls, but internal buffers are
+/// reset for each operation.
 pub struct Formatter {
+    /// Configuration options that control formatting behavior.
+    /// Modify these before calling formatting methods.
     pub options: FracturedJsonOptions,
+
+    /// Function used to calculate string display width.
+    ///
+    /// By default, this counts Unicode characters. For accurate alignment with
+    /// East Asian wide characters, you can provide a custom function that accounts
+    /// for character display widths (e.g., using the `unicode-width` crate).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use fracturedjson::Formatter;
+    /// use std::sync::Arc;
+    ///
+    /// let mut formatter = Formatter::new();
+    ///
+    /// // Use a custom width function (example with simple char count)
+    /// formatter.string_length_func = Arc::new(|s: &str| s.chars().count());
+    /// ```
     pub string_length_func: Arc<dyn Fn(&str) -> usize + Send + Sync>,
     buffer: StringJoinBuffer,
     pads: PaddedFormattingTokens,
@@ -22,6 +68,15 @@ impl Default for Formatter {
 }
 
 impl Formatter {
+    /// Creates a new `Formatter` with default options.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use fracturedjson::Formatter;
+    ///
+    /// let formatter = Formatter::new();
+    /// ```
     pub fn new() -> Self {
         let options = FracturedJsonOptions::default();
         let string_length_func: Arc<dyn Fn(&str) -> usize + Send + Sync> =
@@ -35,10 +90,40 @@ impl Formatter {
         }
     }
 
+    /// Default string length function that counts Unicode characters.
+    ///
+    /// This is the default implementation used for calculating display widths.
+    /// For most Western text, this produces correct alignment. For text containing
+    /// East Asian wide characters, consider using a width-aware function.
     pub fn string_length_by_char_count(value: &str) -> usize {
         value.chars().count()
     }
 
+    /// Reformats JSON text according to the current options.
+    ///
+    /// Parses the input JSON and produces formatted output with proper indentation,
+    /// line breaks, and alignment based on the configured options.
+    ///
+    /// # Arguments
+    ///
+    /// * `json_text` - The JSON string to format
+    /// * `starting_depth` - Initial indentation depth (usually 0)
+    ///
+    /// # Returns
+    ///
+    /// The formatted JSON string, or an error if parsing fails.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use fracturedjson::Formatter;
+    ///
+    /// let mut formatter = Formatter::new();
+    /// let output = formatter.reformat(r#"{"name":"Alice","age":30}"#, 0).unwrap();
+    ///
+    /// // Output will be nicely formatted with proper spacing
+    /// assert!(output.contains("\"name\": \"Alice\""));
+    /// ```
     pub fn reformat(
         &mut self,
         json_text: &str,
@@ -51,6 +136,33 @@ impl Formatter {
         Ok(self.buffer.as_string())
     }
 
+    /// Minifies JSON text by removing all unnecessary whitespace.
+    ///
+    /// Produces the most compact valid JSON representation of the input.
+    /// Comments are handled according to `options.comment_policy`.
+    ///
+    /// # Arguments
+    ///
+    /// * `json_text` - The JSON string to minify
+    ///
+    /// # Returns
+    ///
+    /// The minified JSON string, or an error if parsing fails.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use fracturedjson::Formatter;
+    ///
+    /// let mut formatter = Formatter::new();
+    /// let input = r#"{
+    ///     "name": "Alice",
+    ///     "age": 30
+    /// }"#;
+    ///
+    /// let output = formatter.minify(input).unwrap();
+    /// assert_eq!(output, r#"{"name":"Alice","age":30}"#);
+    /// ```
     pub fn minify(&mut self, json_text: &str) -> Result<String, FracturedJsonError> {
         let parser = Parser::new(self.options.clone());
         let mut doc_model = parser.parse_top_level(json_text, true)?;
@@ -59,6 +171,32 @@ impl Formatter {
         Ok(self.buffer.as_string())
     }
 
+    /// Formats a [`serde_json::Value`] according to the current options.
+    ///
+    /// This is useful when you already have parsed JSON data and want to
+    /// format it without going through text parsing again.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The JSON value to format
+    /// * `starting_depth` - Initial indentation depth (usually 0)
+    /// * `recursion_limit` - Maximum nesting depth to prevent stack overflow
+    ///
+    /// # Returns
+    ///
+    /// The formatted JSON string, or an error if the recursion limit is exceeded.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use fracturedjson::Formatter;
+    /// use serde_json::json;
+    ///
+    /// let mut formatter = Formatter::new();
+    /// let value = json!({"name": "Alice", "scores": [95, 87, 92]});
+    ///
+    /// let output = formatter.serialize_value(&value, 0, 100).unwrap();
+    /// ```
     pub fn serialize_value(
         &mut self,
         value: &serde_json::Value,
@@ -75,6 +213,43 @@ impl Formatter {
         Ok(self.buffer.as_string())
     }
 
+    /// Serializes any [`serde::Serialize`] type to formatted JSON.
+    ///
+    /// This is the most convenient method for formatting Rust data structures.
+    /// The value is first converted to a `serde_json::Value`, then formatted.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Any value implementing `Serialize`
+    /// * `starting_depth` - Initial indentation depth (usually 0)
+    /// * `recursion_limit` - Maximum nesting depth to prevent stack overflow
+    ///
+    /// # Returns
+    ///
+    /// The formatted JSON string, or an error if serialization fails.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use fracturedjson::Formatter;
+    /// use serde::Serialize;
+    ///
+    /// #[derive(Serialize)]
+    /// struct Person {
+    ///     name: String,
+    ///     age: u32,
+    /// }
+    ///
+    /// let person = Person {
+    ///     name: "Alice".into(),
+    ///     age: 30,
+    /// };
+    ///
+    /// let mut formatter = Formatter::new();
+    /// let output = formatter.serialize(&person, 0, 100).unwrap();
+    ///
+    /// assert!(output.contains("\"name\": \"Alice\""));
+    /// ```
     pub fn serialize<T: serde::Serialize>(
         &mut self,
         value: &T,

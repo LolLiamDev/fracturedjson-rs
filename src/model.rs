@@ -1,14 +1,32 @@
+/// The type of a JSON element.
+///
+/// This enum represents the different types of items that can appear in JSON,
+/// including standard JSON types (null, boolean, string, number, object, array)
+/// and extended types for comment support (blank lines, comments).
+///
+/// This is primarily exposed for advanced use cases where you need to inspect
+/// the parsed structure. Most users won't need to interact with this directly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JsonItemType {
+    /// JSON `null` value.
     Null,
+    /// JSON `false` boolean.
     False,
+    /// JSON `true` boolean.
     True,
+    /// A JSON string value.
     String,
+    /// A JSON number value.
     Number,
+    /// A JSON object (`{}`).
     Object,
+    /// A JSON array (`[]`).
     Array,
+    /// A blank line (when `preserve_blank_lines` is enabled).
     BlankLine,
+    /// A line comment (`// ...`).
     LineComment,
+    /// A block comment (`/* ... */`).
     BlockComment,
 }
 
@@ -47,10 +65,26 @@ pub enum TableColumnType {
     Mixed,
 }
 
+/// A position within the JSON input text.
+///
+/// Used to report the location of errors or elements within the source.
+/// All values are zero-indexed.
+///
+/// # Example
+///
+/// ```rust
+/// use fracturedjson::InputPosition;
+///
+/// // Represents position at the start of line 3, column 5
+/// let pos = InputPosition { index: 42, row: 2, column: 4 };
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InputPosition {
+    /// Byte offset from the start of the input (zero-indexed).
     pub index: usize,
+    /// Line number (zero-indexed, so first line is 0).
     pub row: usize,
+    /// Column number within the line (zero-indexed).
     pub column: usize,
 }
 
