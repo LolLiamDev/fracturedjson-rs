@@ -7,6 +7,7 @@ use clap::{Parser, ValueEnum};
 use fracturedjson::{
     CommentPolicy, EolStyle, Formatter, FracturedJsonOptions, NumberListAlignment,
 };
+use is_terminal::IsTerminal;
 
 /// A human-friendly JSON formatter with smart line breaks and table alignment.
 ///
@@ -24,6 +25,10 @@ struct Args {
     /// Output file. If not specified, writes to stdout.
     #[arg(short, long, value_name = "FILE")]
     output: Option<PathBuf>,
+
+    /// Colorize output for the terminal (stdout only).
+    #[arg(long, value_enum, default_value = "auto")]
+    color: ColorModeArg,
 
     /// Minify output (remove all whitespace).
     #[arg(short, long)]
@@ -119,6 +124,13 @@ enum JsonlErrorPolicy {
     Passthrough,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum ColorModeArg {
+    Auto,
+    Always,
+    Never,
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -155,6 +167,12 @@ fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         formatter.minify(&input)?
     } else {
         formatter.reformat(&input, 0)?
+    };
+
+    let output = if args.output.is_none() && should_colorize(args.color) {
+        colorize_json(&output)
+    } else {
+        output
     };
 
     // Write output
@@ -221,6 +239,209 @@ fn process_jsonl(
     Ok(result)
 }
 
+const COLOR_RESET: &str = "\x1b[0m";
+const COLOR_KEY: &str = "\x1b[94m";
+const COLOR_STRING: &str = "\x1b[32m";
+const COLOR_NUMBER: &str = "\x1b[36m";
+const COLOR_LITERAL: &str = "\x1b[35m";
+const COLOR_PUNCT: &str = "\x1b[2m";
+const COLOR_COMMENT: &str = "\x1b[90m";
+
+fn should_colorize(mode: ColorModeArg) -> bool {
+    match mode {
+        ColorModeArg::Auto => io::stdout().is_terminal(),
+        ColorModeArg::Always => true,
+        ColorModeArg::Never => false,
+    }
+}
+
+enum ContainerState {
+    Object(bool),
+    Array,
+}
+
+fn colorize_json(input: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    let bytes = input.as_bytes();
+    let mut index = 0;
+    let mut containers: Vec<ContainerState> = Vec::new();
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+
+        if !byte.is_ascii() {
+            let ch = input[index..].chars().next().unwrap();
+            output.push(ch);
+            index += ch.len_utf8();
+            continue;
+        }
+
+        match byte {
+            b'"' => {
+                let start = index;
+                index += 1;
+                let mut escaped = false;
+                while index < bytes.len() {
+                    let current = bytes[index];
+                    if current == b'\n' {
+                        index += 1;
+                        break;
+                    }
+                    if current == b'\\' && !escaped {
+                        escaped = true;
+                        index += 1;
+                        continue;
+                    }
+                    if current == b'"' && !escaped {
+                        index += 1;
+                        break;
+                    }
+                    if escaped {
+                        escaped = false;
+                    }
+                    advance_utf8(input, bytes, &mut index);
+                }
+
+                let color = if matches!(containers.last(), Some(ContainerState::Object(true))) {
+                    COLOR_KEY
+                } else {
+                    COLOR_STRING
+                };
+                push_colored(&mut output, color, input, start, index);
+            }
+            b'/' if matches_literal(bytes, index, b"//") => {
+                let start = index;
+                index += 2;
+                while index < bytes.len() && bytes[index] != b'\n' {
+                    advance_utf8(input, bytes, &mut index);
+                }
+                push_colored(&mut output, COLOR_COMMENT, input, start, index);
+            }
+            b'/' if matches_literal(bytes, index, b"/*") => {
+                let start = index;
+                index += 2;
+                while index + 1 < bytes.len() {
+                    if bytes[index] == b'*' && bytes[index + 1] == b'/' {
+                        index += 2;
+                        break;
+                    }
+                    advance_utf8(input, bytes, &mut index);
+                }
+                if index < bytes.len() && index + 1 >= bytes.len() {
+                    index = bytes.len();
+                }
+                push_colored(&mut output, COLOR_COMMENT, input, start, index);
+            }
+            b'-' | b'0'..=b'9' => {
+                if byte == b'-' && (index + 1 >= bytes.len() || !bytes[index + 1].is_ascii_digit())
+                {
+                    output.push('-');
+                    index += 1;
+                    continue;
+                }
+                let start = index;
+                index += 1;
+                while index < bytes.len() {
+                    let current = bytes[index];
+                    if current.is_ascii_digit()
+                        || matches!(current, b'.' | b'e' | b'E' | b'+' | b'-')
+                    {
+                        index += 1;
+                    } else {
+                        break;
+                    }
+                }
+                push_colored(&mut output, COLOR_NUMBER, input, start, index);
+            }
+            b't' if matches_literal(bytes, index, b"true") => {
+                let start = index;
+                index += 4;
+                push_colored(&mut output, COLOR_LITERAL, input, start, index);
+            }
+            b'f' if matches_literal(bytes, index, b"false") => {
+                let start = index;
+                index += 5;
+                push_colored(&mut output, COLOR_LITERAL, input, start, index);
+            }
+            b'n' if matches_literal(bytes, index, b"null") => {
+                let start = index;
+                index += 4;
+                push_colored(&mut output, COLOR_LITERAL, input, start, index);
+            }
+            b'{' => {
+                containers.push(ContainerState::Object(true));
+                let start = index;
+                index += 1;
+                push_colored(&mut output, COLOR_PUNCT, input, start, index);
+            }
+            b'}' => {
+                if let Some(ContainerState::Object(_)) = containers.last() {
+                    containers.pop();
+                }
+                let start = index;
+                index += 1;
+                push_colored(&mut output, COLOR_PUNCT, input, start, index);
+            }
+            b'[' => {
+                containers.push(ContainerState::Array);
+                let start = index;
+                index += 1;
+                push_colored(&mut output, COLOR_PUNCT, input, start, index);
+            }
+            b']' => {
+                if let Some(ContainerState::Array) = containers.last() {
+                    containers.pop();
+                }
+                let start = index;
+                index += 1;
+                push_colored(&mut output, COLOR_PUNCT, input, start, index);
+            }
+            b':' => {
+                if let Some(ContainerState::Object(expect_key)) = containers.last_mut() {
+                    *expect_key = false;
+                }
+                let start = index;
+                index += 1;
+                push_colored(&mut output, COLOR_PUNCT, input, start, index);
+            }
+            b',' => {
+                if let Some(ContainerState::Object(expect_key)) = containers.last_mut() {
+                    *expect_key = true;
+                }
+                let start = index;
+                index += 1;
+                push_colored(&mut output, COLOR_PUNCT, input, start, index);
+            }
+            _ => {
+                output.push(byte as char);
+                index += 1;
+            }
+        }
+    }
+
+    output
+}
+
+fn matches_literal(bytes: &[u8], index: usize, literal: &[u8]) -> bool {
+    bytes.len() >= index + literal.len() && &bytes[index..index + literal.len()] == literal
+}
+
+fn push_colored(output: &mut String, color: &str, input: &str, start: usize, end: usize) {
+    output.push_str(color);
+    output.push_str(&input[start..end]);
+    output.push_str(COLOR_RESET);
+}
+
+fn advance_utf8(input: &str, bytes: &[u8], index: &mut usize) {
+    if bytes[*index].is_ascii() {
+        *index += 1;
+    } else if let Some(ch) = input[*index..].chars().next() {
+        *index += ch.len_utf8();
+    } else {
+        *index += 1;
+    }
+}
+
 fn configure_options(opts: &mut FracturedJsonOptions, args: &Args) {
     opts.max_total_line_length = args.max_width;
     opts.indent_spaces = args.indent;
@@ -250,4 +471,28 @@ fn configure_options(opts: &mut FracturedJsonOptions, args: &Args) {
     opts.max_table_row_complexity = args.max_table_complexity;
     opts.simple_bracket_padding = args.simple_bracket_padding;
     opts.nested_bracket_padding = !args.no_nested_bracket_padding;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn colorize_json_highlights_tokens() {
+        let input = r#"{"key":true,"num":-3.5,"text":"hi","nil":null,/*c*/"arr":[1]}"#;
+        let output = colorize_json(input);
+
+        assert!(output.contains(&format!("{COLOR_KEY}\"key\"{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_STRING}\"hi\"{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_NUMBER}-3.5{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_NUMBER}1{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_LITERAL}true{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_LITERAL}null{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_COMMENT}/*c*/{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_KEY}\"arr\"{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_PUNCT}{{{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_PUNCT}}}{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_PUNCT}[{COLOR_RESET}")));
+        assert!(output.contains(&format!("{COLOR_PUNCT}]{COLOR_RESET}")));
+    }
 }

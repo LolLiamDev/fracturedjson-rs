@@ -54,6 +54,9 @@ fjson --indent 2 --max-width 80 < input.json
 
 # Handle JSON with comments
 fjson --comments preserve < config.jsonc
+
+# Colorized output for terminals
+fjson --color auto < input.json
 ```
 
 ### CLI Options
@@ -65,6 +68,7 @@ fjson --comments preserve < config.jsonc
 | `-i, --indent N` | Spaces per indentation level (default: 4) |
 | `-t, --tabs` | Use tabs instead of spaces |
 | `-o, --output FILE` | Write to file instead of stdout |
+| `--color MODE` | Colorize stdout: `auto`, `always`, `never` |
 | `--comments MODE` | Handle comments: `error`, `remove`, `preserve` |
 | `--number-align STYLE` | Number alignment: `left`, `right`, `decimal`, `normalize` |
 | `--trailing-commas` | Allow trailing commas in input |

@@ -211,9 +211,9 @@ impl Formatter {
             }
 
             // Format the line
-            let formatted = self.reformat(line, 0).map_err(|e| {
-                FracturedJsonError::simple(format!("line {}: {}", line_num + 1, e))
-            })?;
+            let formatted = self
+                .reformat(line, 0)
+                .map_err(|e| FracturedJsonError::simple(format!("line {}: {}", line_num + 1, e)))?;
 
             // Remove trailing newline since we add our own
             output_lines.push(formatted.trim_end().to_string());
@@ -263,9 +263,9 @@ impl Formatter {
             }
 
             // Minify the line
-            let minified = self.minify(line).map_err(|e| {
-                FracturedJsonError::simple(format!("line {}: {}", line_num + 1, e))
-            })?;
+            let minified = self
+                .minify(line)
+                .map_err(|e| FracturedJsonError::simple(format!("line {}: {}", line_num + 1, e)))?;
 
             // Remove trailing newline since we add our own
             output_lines.push(minified.trim_end().to_string());
